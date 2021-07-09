@@ -11,15 +11,11 @@ def loadIndirect():
     elif sys.platform == "darwin":
         libname = "lib{}.dylib"
     elif sys.platform.startswith("win"):
-        # As of python3.8, ctypes does not seem to search $PATH when loading DLLs.
-        # We could use `os.add_dll_directory` to configure the search path, but
-        # it doesn't feel right to mess with application-wide settings. Let's
-        # assume that the `.dll` is next to the `.py` file and load by full path.
-        libname = os.path.join(
-            os.path.dirname(__file__),
-            "{}.dll",
-        )
-    return getattr(ctypes.cdll, libname.format("{{ config.cdylib_name() }}"))
+        libname = "{}.dll",
+
+    libname = libname.format("{{ config.cdylib_name() }}")
+    path = os.path.join(os.path.dirname(__file__), libname)
+    return getattr(ctypes.cdll, path)
 
 # A ctypes library to expose the extern-C FFI definitions.
 # This is an implementation detail which will be called internally by the public API.
