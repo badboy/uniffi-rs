@@ -48,3 +48,10 @@ mod geometry {
         })
     }
 }
+
+impl Point {
+    fn move_to(&mut self, x: f64, y: f64) {
+        self.coord_x += x;
+        self.coord_y += y;
+    }
+}
