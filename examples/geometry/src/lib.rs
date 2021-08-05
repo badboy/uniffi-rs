@@ -16,6 +16,16 @@ mod geometry {
         pub coord_y: f64,
     }
 
+    pub struct Counter {
+        value: u32
+    }
+
+    impl Counter {
+        fn add(&self, amount: u32) {
+            println!("amount: {}", amount);
+        }
+    }
+
     #[derive(Debug, Clone)]
     pub struct Line {
         pub start: Point,
