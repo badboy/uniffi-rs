@@ -127,10 +127,7 @@ pub fn generate_component_scaffolding<P: AsRef<Path>>(
     let out_dir_override = out_dir_override.as_ref().map(|p| p.as_ref());
     let udl_file = udl_file.as_ref();
 
-    let early_config = get_early_config(
-        guess_crate_root(udl_file)?,
-        config_file_override,
-    )?;
+    let early_config = get_early_config(guess_crate_root(udl_file)?, config_file_override)?;
     let component = parse_udl(udl_file, early_config.package.checksum)?;
     let _config = get_config(
         &component,
@@ -168,10 +165,7 @@ pub fn generate_bindings<P: AsRef<Path>>(
     let config_file_override = config_file_override.as_ref().map(|p| p.as_ref());
     let udl_file = udl_file.as_ref();
 
-    let early_config = get_early_config(
-        guess_crate_root(udl_file)?,
-        config_file_override,
-    )?;
+    let early_config = get_early_config(guess_crate_root(udl_file)?, config_file_override)?;
     let component = parse_udl(udl_file, early_config.package.checksum)?;
     let config = get_config(
         &component,
@@ -226,10 +220,7 @@ pub fn run_tests<P: AsRef<Path>>(
         for udl_file in udl_files {
             let udl_file = Path::new(udl_file);
             let crate_root = guess_crate_root(udl_file)?;
-            let early_config = get_early_config(
-                guess_crate_root(udl_file)?,
-                config_file_override,
-            )?;
+            let early_config = get_early_config(guess_crate_root(udl_file)?, config_file_override)?;
             let component = parse_udl(udl_file, early_config.package.checksum)?;
             let config = get_config(&component, crate_root, config_file_override)?;
             bindings::write_bindings(&config.bindings, &component, &cdylib_dir, lang, true)?;
@@ -283,10 +274,11 @@ fn get_config(
     }
 }
 
-fn get_early_config(
-    crate_root: &Path,
-    config_file_override: Option<&Path>,
-) -> Result<EarlyConfig> {
+/// Parse only the `[package]` part of the configuration.
+///
+/// Used to configure the ComponentInterface itself,
+/// before it needs to know the bindings configuration.
+fn get_early_config(crate_root: &Path, config_file_override: Option<&Path>) -> Result<EarlyConfig> {
     let config_file: Option<PathBuf> = match config_file_override {
         Some(cfg) => Some(PathBuf::from(cfg)),
         None => crate_root.join("uniffi.toml").canonicalize().ok(),
@@ -338,12 +330,19 @@ fn bool_true() -> bool {
     true
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct PackageConfig {
     #[serde(default = "bool_true")]
     checksum: bool,
 }
 
+impl Default for PackageConfig {
+    fn default() -> Self {
+        PackageConfig { checksum: true }
+    }
+}
+
+/// The limited package configuration, parsed early.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct EarlyConfig {
     #[serde(default)]
