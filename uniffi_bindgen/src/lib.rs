@@ -126,12 +126,18 @@ pub fn generate_component_scaffolding<P: AsRef<Path>>(
     let config_file_override = config_file_override.as_ref().map(|p| p.as_ref());
     let out_dir_override = out_dir_override.as_ref().map(|p| p.as_ref());
     let udl_file = udl_file.as_ref();
-    let component = parse_udl(udl_file)?;
+
+    let early_config = get_early_config(
+        guess_crate_root(udl_file)?,
+        config_file_override,
+    )?;
+    let component = parse_udl(udl_file, early_config.package.checksum)?;
     let _config = get_config(
         &component,
         guess_crate_root(udl_file)?,
         config_file_override,
-    );
+    )?;
+
     let mut filename = Path::new(&udl_file)
         .file_stem()
         .ok_or_else(|| anyhow!("not a file"))?
@@ -162,7 +168,11 @@ pub fn generate_bindings<P: AsRef<Path>>(
     let config_file_override = config_file_override.as_ref().map(|p| p.as_ref());
     let udl_file = udl_file.as_ref();
 
-    let component = parse_udl(udl_file)?;
+    let early_config = get_early_config(
+        guess_crate_root(udl_file)?,
+        config_file_override,
+    )?;
+    let component = parse_udl(udl_file, early_config.package.checksum)?;
     let config = get_config(
         &component,
         guess_crate_root(udl_file)?,
@@ -214,8 +224,13 @@ pub fn run_tests<P: AsRef<Path>>(
 
     for (lang, test_scripts) in language_tests {
         for udl_file in udl_files {
-            let crate_root = guess_crate_root(Path::new(udl_file))?;
-            let component = parse_udl(Path::new(udl_file))?;
+            let udl_file = Path::new(udl_file);
+            let crate_root = guess_crate_root(udl_file)?;
+            let early_config = get_early_config(
+                guess_crate_root(udl_file)?,
+                config_file_override,
+            )?;
+            let component = parse_udl(udl_file, early_config.package.checksum)?;
             let config = get_config(&component, crate_root, config_file_override)?;
             bindings::write_bindings(&config.bindings, &component, &cdylib_dir, lang, true)?;
             bindings::compile_bindings(&config.bindings, &component, &cdylib_dir, lang)?;
@@ -268,6 +283,27 @@ fn get_config(
     }
 }
 
+fn get_early_config(
+    crate_root: &Path,
+    config_file_override: Option<&Path>,
+) -> Result<EarlyConfig> {
+    let config_file: Option<PathBuf> = match config_file_override {
+        Some(cfg) => Some(PathBuf::from(cfg)),
+        None => crate_root.join("uniffi.toml").canonicalize().ok(),
+    };
+
+    match config_file {
+        Some(path) => {
+            let contents = slurp_file(&path)
+                .with_context(|| format!("Failed to read config file from {:?}", &path))?;
+            let loaded_config: EarlyConfig = toml::de::from_str(&contents)
+                .with_context(|| format!("Failed to generate config from file {:?}", &path))?;
+            Ok(loaded_config)
+        }
+        None => Ok(EarlyConfig::default()),
+    }
+}
+
 fn get_out_dir(udl_file: &Path, out_dir_override: Option<&Path>) -> Result<PathBuf> {
     Ok(match out_dir_override {
         Some(s) => {
@@ -283,10 +319,11 @@ fn get_out_dir(udl_file: &Path, out_dir_override: Option<&Path>) -> Result<PathB
     })
 }
 
-fn parse_udl(udl_file: &Path) -> Result<ComponentInterface> {
+fn parse_udl(udl_file: &Path, with_checksum: bool) -> Result<ComponentInterface> {
     let udl =
         slurp_file(udl_file).map_err(|_| anyhow!("Failed to read UDL from {:?}", &udl_file))?;
-    udl.parse::<interface::ComponentInterface>()
+
+    interface::ComponentInterface::from_webidl(&udl, with_checksum)
         .map_err(|e| anyhow!("Failed to parse UDL: {}", e))
 }
 
@@ -295,6 +332,22 @@ fn slurp_file(file_name: &Path) -> Result<String> {
     let mut f = File::open(file_name)?;
     f.read_to_string(&mut contents)?;
     Ok(contents)
+}
+
+fn bool_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct PackageConfig {
+    #[serde(default = "bool_true")]
+    checksum: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct EarlyConfig {
+    #[serde(default)]
+    package: PackageConfig,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

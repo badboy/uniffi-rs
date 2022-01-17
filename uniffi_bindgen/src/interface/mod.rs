@@ -48,7 +48,6 @@ use std::{
     collections::{hash_map::DefaultHasher, HashSet},
     convert::TryFrom,
     hash::{Hash, Hasher},
-    str::FromStr,
 };
 
 use anyhow::{bail, Result};
@@ -98,13 +97,17 @@ pub struct ComponentInterface {
     objects: Vec<Object>,
     callback_interfaces: Vec<CallbackInterface>,
     errors: Vec<Error>,
+
+    /// Option to disable the checksum included in FFI functions.
+    with_checksum: bool,
 }
 
 impl<'ci> ComponentInterface {
     /// Parse a `ComponentInterface` from a string containing a WebIDL definition.
-    pub fn from_webidl(idl: &str) -> Result<Self> {
+    pub fn from_webidl(idl: &str, with_checksum: bool) -> Result<Self> {
         let mut ci = Self {
             uniffi_version: env!("CARGO_PKG_VERSION").to_string(),
+            with_checksum,
             ..Default::default()
         };
         // There's some lifetime thing with the errors returned from weedle::Definitions::parse
@@ -329,11 +332,15 @@ impl<'ci> ComponentInterface {
     /// compiled Rust code. The result will be an ugly inscrutable link-time error, but that is a lot
     /// better than triggering potentially arbitrary memory unsafety!
     pub fn ffi_namespace(&self) -> String {
-        format!(
-            "{}_{:x}",
-            self.namespace,
-            (self.checksum() & 0x000000000000FFFF) as u16
-        )
+        if self.with_checksum {
+            format!(
+                "{}_{:x}",
+                self.namespace,
+                (self.checksum() & 0x000000000000FFFF) as u16
+            )
+        } else {
+            format!("{}", self.namespace,)
+        }
     }
 
     /// Builtin FFI function for allocating a new `RustBuffer`.
@@ -558,14 +565,6 @@ impl<'ci> ComponentInterface {
             callback.derive_ffi_funcs(&ci_prefix);
         }
         Ok(())
-    }
-}
-
-/// Convenience implementation for parsing a `ComponentInterface` from a string.
-impl FromStr for ComponentInterface {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> Result<Self> {
-        ComponentInterface::from_webidl(s)
     }
 }
 
