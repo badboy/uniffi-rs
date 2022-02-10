@@ -144,7 +144,7 @@ pub fn generate_component_scaffolding<P: AsRef<Path>>(
         File::create(&out_dir).map_err(|e| anyhow!("Failed to create output file: {:?}", e))?;
     write!(f, "{}", RustScaffolding::new(&component))
         .map_err(|e| anyhow!("Failed to write output file: {:?}", e))?;
-    if format_code {
+    if false {
         Command::new("rustfmt").arg(&out_dir).status()?;
     }
     Ok(())
