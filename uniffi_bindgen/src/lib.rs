@@ -138,6 +138,7 @@ pub fn generate_component_scaffolding<P: AsRef<Path>>(
         .to_os_string();
     filename.push(".uniffi.rs");
     let mut out_dir = get_out_dir(udl_file, out_dir_override)?;
+    println!("cargo:warning=jer. out_dir: {:?}", out_dir);
     out_dir.push(filename);
     let mut f =
         File::create(&out_dir).map_err(|e| anyhow!("Failed to create output file: {:?}", e))?;
@@ -233,6 +234,7 @@ pub fn run_tests<P: AsRef<Path>>(
 /// to the crate root. We might consider something more sophisticated in
 /// future.
 fn guess_crate_root(udl_file: &Path) -> Result<&Path> {
+    println!("cargo:warning=jer. udl_file: {:?}", udl_file);
     let path_guess = udl_file
         .parent()
         .ok_or_else(|| anyhow!("UDL file has no parent folder!"))?
@@ -241,6 +243,7 @@ fn guess_crate_root(udl_file: &Path) -> Result<&Path> {
     if !path_guess.join("Cargo.toml").is_file() {
         bail!("UDL file does not appear to be inside a crate")
     }
+    println!("cargo:warning=jer. path guess: {:?}", path_guess);
     Ok(path_guess)
 }
 
@@ -272,7 +275,11 @@ fn get_out_dir(udl_file: &Path, out_dir_override: Option<&Path>) -> Result<PathB
     Ok(match out_dir_override {
         Some(s) => {
             // Create the directory if it doesn't exist yet.
-            std::fs::create_dir_all(&s)?;
+            println!("cargo:warning=jer. get_out_dir. creating: {:?}", s);
+            std::fs::create_dir_all(&s).map_err(|e| {
+                println!("cargo:warning=jer. get_out_dir. creating {:?} failed with {:?}", s, e);
+                e
+            })?;
             s.canonicalize()
                 .map_err(|e| anyhow!("Unable to find out-dir: {:?}", e))?
         }
@@ -292,7 +299,11 @@ fn parse_udl(udl_file: &Path) -> Result<ComponentInterface> {
 
 fn slurp_file(file_name: &Path) -> Result<String> {
     let mut contents = String::new();
-    let mut f = File::open(file_name)?;
+    println!("cargo:warning=jer. slurp file: {:?}", file_name);
+    let mut f = File::open(file_name).map_err(|e| {
+        println!("cargo:warning=jer. slurp file failed. file: {:?}, error: {:?}", file_name, e);
+        e
+    })?;
     f.read_to_string(&mut contents)?;
     Ok(contents)
 }
