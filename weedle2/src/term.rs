@@ -25,7 +25,7 @@ macro_rules! ident_tag (
                     let mut res = Ok((i, o));
                     if let Some(&c) = i.as_bytes().first() {
                         if is_alphanumeric(c) || c == b'_' || c == b'-' {
-                            res = Err(NomErr::Error(($i, ErrorKind::Tag)));
+                            res = Err(NomErr::Error(nom::error::Error::new($i, ErrorKind::Tag)));
                         }
                     }
                     res

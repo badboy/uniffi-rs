@@ -32,8 +32,8 @@
     many0,
     opt,
     recognize,
-    separated_list,
-    separated_nonempty_list,
+    separated_list0,
+    separated_list1,
     terminated
 )]
 extern crate nom;
@@ -81,7 +81,8 @@ pub mod types;
 /// println!("{:?}", parsed);
 /// ```
 pub fn parse(raw: &str) -> Result<Definitions<'_>, Err<(&str, ErrorKind)>> {
-    let (remaining, parsed) = Definitions::parse(raw)?;
+    let (remaining, parsed) =
+        Definitions::parse(raw).map_err(|e| e.map(|inner| (inner.input, inner.code)))?;
     assert!(
         remaining.is_empty(),
         "There is redundant raw data after parsing"

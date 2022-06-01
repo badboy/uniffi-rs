@@ -17,4 +17,4 @@ name = "weedle"
 
 [dependencies]
 fs-err = "2.7.0"
-nom = { version = "5.0.0", default-features = false, features = ["std"] }
+nom = { version = "6", default-features = false, features = ["std"] }
