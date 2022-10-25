@@ -21,6 +21,16 @@ class CallAnswererImpl(val mode: String) : CallAnswerer {
     }
 }
 
+class CallAnswererNoThrowImpl(val mode: String) : CallAnswererNoThrow {
+    override fun answer(): String {
+        if (mode == "normal") {
+            return "Bonjour"
+        } else {
+            throw SomeOtherError();
+        }
+    }
+}
+
 val telephone = Telephone()
 
 assert(telephone.call(CallAnswererImpl("normal")) == "Bonjour")
@@ -34,6 +44,13 @@ try {
 
 try {
     telephone.call(CallAnswererImpl("something-else"))
+    throw RuntimeException("Should have thrown an internal exception!")
+} catch(e: TelephoneException.InternalTelephoneException) {
+    // It's okay
+}
+
+try {
+    telephone.callNoThrow(CallAnswererNoThrowImpl("something-else"))
     throw RuntimeException("Should have thrown an internal exception!")
 } catch(e: TelephoneException.InternalTelephoneException) {
     // It's okay

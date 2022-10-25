@@ -22,6 +22,10 @@ pub trait CallAnswerer {
     fn answer(&self) -> Result<String, TelephoneError>;
 }
 
+pub trait CallAnswererNoThrow {
+    fn answer(&self) -> String;
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Telephone;
 impl Telephone {
@@ -30,6 +34,10 @@ impl Telephone {
     }
 
     pub fn call(&self, answerer: Box<dyn CallAnswerer>) -> Result<String, TelephoneError> {
+        answerer.answer()
+    }
+
+    pub fn call_no_throw(&self, answerer: Box<dyn CallAnswererNoThrow>) -> String {
         answerer.answer()
     }
 }

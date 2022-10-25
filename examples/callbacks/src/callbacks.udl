@@ -10,9 +10,15 @@ interface Telephone {
   constructor();
   [Throws=TelephoneError]
   string call(CallAnswerer answerer);
+
+  string call_no_throw(CallAnswererNoThrow answerer);
 };
 
 callback interface CallAnswerer {
   [Throws=TelephoneError]
+  string answer();
+};
+
+callback interface CallAnswererNoThrow {
   string answer();
 };
