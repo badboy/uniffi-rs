@@ -408,6 +408,10 @@ impl APIConverter<Constructor> for weedle::interface::ConstructorInterfaceMember
 #[derive(Debug, Clone, Checksum)]
 pub struct Method {
     pub(super) name: String,
+    // Hacky POC - empty string == "not magic". All "magic" functions also get names,
+    // which is (a) the name on the Rust side of the ffi and (b) the name on the foreign
+    // side is those foreign bindings don't support the magic method.
+    pub(super) magic: String,
     pub(super) object_name: String,
     pub(super) is_async: bool,
     pub(super) object_impl: ObjectImpl,
@@ -436,6 +440,10 @@ impl Method {
 
     pub fn is_async(&self) -> bool {
         self.is_async
+    }
+
+    pub fn magic(&self) -> &str {
+        &self.magic
     }
 
     pub fn arguments(&self) -> Vec<&Argument> {
@@ -548,6 +556,7 @@ impl From<uniffi_meta::MethodMetadata> for Method {
 
         Self {
             name: meta.name,
+            magic: "".to_string(),
             object_name: meta.self_name,
             is_async,
             object_impl: ObjectImpl::Struct,
@@ -576,6 +585,9 @@ impl APIConverter<Method> for weedle::interface::OperationInterfaceMember<'_> {
             bail!("method modifiers are not supported")
         }
         let return_type = ci.resolve_return_type_expression(&self.return_type)?;
+        let attributes = MethodAttributes::try_from(self.attributes.as_ref())?;
+        let magic = attributes.get_magic();
+
         Ok(Method {
             name: match self.identifier {
                 None => bail!("anonymous methods are not supported {:?}", self),
@@ -587,6 +599,7 @@ impl APIConverter<Method> for weedle::interface::OperationInterfaceMember<'_> {
                     name
                 }
             },
+            magic,
             // We don't know the name of the containing `Object` at this point, fill it in later.
             object_name: Default::default(),
             // Also fill in checksum_fn_name later, since it depends on the object name
@@ -596,7 +609,7 @@ impl APIConverter<Method> for weedle::interface::OperationInterfaceMember<'_> {
             arguments: self.args.body.list.convert(ci)?,
             return_type,
             ffi_func: Default::default(),
-            attributes: MethodAttributes::try_from(self.attributes.as_ref())?,
+            attributes,
             checksum_override: None,
         })
     }

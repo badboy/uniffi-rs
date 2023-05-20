@@ -1,13 +1,13 @@
 {%- let obj = ci.get_object_definition(name).unwrap() %}
 
 class {{ type_name }}(object):
-    {%- match obj.primary_constructor() %}
-    {%- when Some with (cons) %}
+{%- match obj.primary_constructor() %}
+{%-     when Some with (cons) %}
     def __init__(self, {% call py::arg_list_decl(cons) -%}):
         {%- call py::setup_args_extra_indent(cons) %}
         self._pointer = {% call py::to_ffi_call(cons) %}
-    {%- when None %}
-    {%- endmatch %}
+{%-     when None %}
+{%- endmatch %}
 
     def __del__(self):
         # In case of partial initialization of instances.
@@ -24,19 +24,33 @@ class {{ type_name }}(object):
         inst._pointer = pointer
         return inst
 
-    {% for cons in obj.alternate_constructors() -%}
+{%- for cons in obj.alternate_constructors() %}
+
     @classmethod
     def {{ cons.name()|fn_name }}(cls, {% call py::arg_list_decl(cons) %}):
         {%- call py::setup_args_extra_indent(cons) %}
         # Call the (fallible) function before creating any half-baked object instances.
         pointer = {% call py::to_ffi_call(cons) %}
         return cls._make_instance_(pointer)
-    {% endfor %}
+{% endfor %}
 
-    {% for meth in obj.methods() -%}
-    {% if meth.is_async() %}
+{%- for meth in obj.methods() -%}
+{%-      let method_name %}
+{%-      if meth.magic() == "fmt" %}
+{%-          let method_name = "__repr__".to_string() %}
+{%-      else if meth.magic() == "str" %}
+{%-          let method_name = "__str__".to_string() %}
+{%-      else if meth.magic() == "eq" %}
+{%-          let method_name = "__eq__".to_string() %}
+{%-      else if meth.magic() == "hash" %}
+{%-          let method_name = "__hash__".to_string() %}
+{%-       else %}
+{%           let method_name = meth.name()|fn_name %}
+{%-       endif %}
 
-    async def {{ meth.name()|fn_name }}(self, {% call py::arg_list_decl(meth) %}):
+{%-      if meth.is_async() %}
+
+    async def {{ method_name }}(self, {% call py::arg_list_decl(meth) %}):
         {%- call py::setup_args_extra_indent(meth) %}
         return await rust_call_async(
             _UniFFILib.{{ func.ffi_func().name() }},
@@ -45,23 +59,25 @@ class {{ type_name }}(object):
             {% call py::arg_list_lowered(func) %}
         )
 
-    {% else %}
-    {%- match meth.return_type() -%}
+{%-      else -%}
+{%-         match meth.return_type() %}
 
-    {%- when Some with (return_type) -%}
-    def {{ meth.name()|fn_name }}(self, {% call py::arg_list_decl(meth) %}):
+{%-             when Some with (return_type) %}
+
+    def {{ method_name }}(self, {% call py::arg_list_decl(meth) %}):
         {%- call py::setup_args_extra_indent(meth) %}
         return {{ return_type|lift_fn }}(
             {% call py::to_ffi_call_with_prefix("self._pointer", meth) %}
         )
 
-    {%- when None -%}
-    def {{ meth.name()|fn_name }}(self, {% call py::arg_list_decl(meth) %}):
+{%-             when None %}
+
+    def {{ method_name }}(self, {% call py::arg_list_decl(meth) %}):
         {%- call py::setup_args_extra_indent(meth) %}
         {% call py::to_ffi_call_with_prefix("self._pointer", meth) %}
-    {% endmatch %}
-    {% endif %}
-    {% endfor %}
+{%          endmatch %}
+{%      endif %}
+{% endfor %}
 
 
 class {{ ffi_converter_name }}:

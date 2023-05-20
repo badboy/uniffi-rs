@@ -76,7 +76,7 @@ pub extern "C" fn {{ ffi_free.name() }}(ptr: *const std::os::raw::c_void, call_s
         // this attempt to call it will fail with a (somewhat) helpful compiler error.
         uniffi::rust_call(call_status, || {
             {{ meth|return_ffi_converter }}::lower_return(
-                <{{ obj.rust_name() }}>::{% call rs::to_rs_call(meth) %}{% if meth.throws() %}.map_err(Into::into){% endif %}
+                {% call rs::to_rs_method_call(obj.rust_name(), meth) %}{% if meth.throws() %}.map_err(Into::into){% endif %}
             )
         })
     }

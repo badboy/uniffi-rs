@@ -33,6 +33,7 @@ pub(super) enum Attribute {
     Name(String),
     SelfType(SelfType),
     Throws(String),
+    Magic(String),
     // `[External="crate_name"]` - We can `use crate_name::...` for the type.
     External {
         crate_name: String,
@@ -75,6 +76,7 @@ impl TryFrom<&weedle::attribute::ExtendedAttribute<'_>> for Attribute {
                 match identity.lhs_identifier.0 {
                     "Name" => Ok(Attribute::Name(name_from_id_or_string(&identity.rhs))),
                     "Throws" => Ok(Attribute::Throws(name_from_id_or_string(&identity.rhs))),
+                    "Magic" => Ok(Attribute::Magic(name_from_id_or_string(&identity.rhs))),
                     "Self" => Ok(Attribute::SelfType(SelfType::try_from(&identity.rhs)?)),
                     "External" => Ok(Attribute::External {
                         crate_name: name_from_id_or_string(&identity.rhs),
@@ -373,6 +375,16 @@ impl MethodAttributes {
             .iter()
             .any(|attr| matches!(attr, Attribute::SelfType(SelfType::ByArc)))
     }
+
+    pub(super) fn get_magic(&self) -> String {
+        self.0
+            .iter()
+            .find_map(|attr| match attr {
+                Attribute::Magic(inner) => Some(inner.clone()),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
 }
 
 impl FromIterator<Attribute> for MethodAttributes {
@@ -389,6 +401,7 @@ impl TryFrom<&weedle::attribute::ExtendedAttributeList<'_>> for MethodAttributes
         let attrs = parse_attributes(weedle_attributes, |attr| match attr {
             Attribute::SelfType(_) => Ok(()),
             Attribute::Throws(_) => Ok(()),
+            Attribute::Magic(_) => Ok(()),
             _ => bail!(format!("{attr:?} not supported for methods")),
         })?;
         Ok(Self(attrs))

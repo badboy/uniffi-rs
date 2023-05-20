@@ -36,6 +36,7 @@ members = [
   "fixtures/keywords/kotlin",
   "fixtures/keywords/rust",
   "fixtures/keywords/swift",
+  "fixtures/magic-methods",
   "fixtures/metadata",
   "fixtures/proc-macro",
   "fixtures/reexport-scaffolding-macro",
