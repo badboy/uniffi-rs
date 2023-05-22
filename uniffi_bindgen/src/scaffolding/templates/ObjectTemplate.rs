@@ -98,6 +98,7 @@ pub extern "C" fn {{ ffi_free.name() }}(ptr: *const std::os::raw::c_void, call_s
 {%      match tm.trait_name() %}
 {%          when "Debug" %}
         {
+            uniffi::deps::static_assertions::assert_impl_all!({{ obj.rust_name() }}: std::fmt::Debug); // This object has a trait method which requires `Debug` be implemented.
             format!(
                 "{:?}",
                 match<std::sync::Arc<{{ obj.rust_name() }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
@@ -108,6 +109,7 @@ pub extern "C" fn {{ ffi_free.name() }}(ptr: *const std::os::raw::c_void, call_s
         }
 {%          when "Display" %}
         {
+            uniffi::deps::static_assertions::assert_impl_all!({{ obj.rust_name() }}: std::fmt::Display); // This object has a trait method which requires `Display` be implemented.
             format!(
                 "{}",
                 match<std::sync::Arc<{{ obj.rust_name() }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
@@ -119,6 +121,7 @@ pub extern "C" fn {{ ffi_free.name() }}(ptr: *const std::os::raw::c_void, call_s
 {%          when "Hash" %}
             {
                 use ::std::hash::{Hash, Hasher};
+                uniffi::deps::static_assertions::assert_impl_all!({{ obj.rust_name() }}: Hash); // This object has a trait method which requires `Hash` be implemented.
                 let mut s = ::std::collections::hash_map::DefaultHasher::new();
                 Hash::hash(match<std::sync::Arc<{{ obj.rust_name() }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
                     Ok(ref val) => val,
@@ -129,6 +132,7 @@ pub extern "C" fn {{ ffi_free.name() }}(ptr: *const std::os::raw::c_void, call_s
 {%          when "PartialEq" %}
             {
                 use ::std::cmp::PartialEq;
+                uniffi::deps::static_assertions::assert_impl_all!({{ obj.rust_name() }}: PartialEq); // This object has a trait method which requires `PartialEq` be implemented.
                 PartialEq::eq({% call rs::_arg_list_rs_call(meth) -%})
             }
 {%          else %}

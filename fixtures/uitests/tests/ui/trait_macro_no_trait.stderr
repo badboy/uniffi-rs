@@ -1,0 +1,106 @@
+error[E0277]: `TraitMethods` doesn't implement `std::fmt::Display`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  | ...   uniffi::deps::static_assertions::assert_impl_all!(r#TraitMethods: std::fmt::Display); // This object has a trait method which requi...
+  |                                                         ^^^^^^^^^^^^^^ `TraitMethods` cannot be formatted with the default formatter
+  |
+  = help: the trait `std::fmt::Display` is not implemented for `TraitMethods`
+  = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+note: required by a bound in `uniffi_traits_fn_method_traitmethods__trait_display::{closure#0}::_::{closure#0}::assert_impl_all`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  |             uniffi::deps::static_assertions::assert_impl_all!(r#TraitMethods: std::fmt::Display); // This object has a trait method which...
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `uniffi_traits_fn_method_traitmethods__trait_display::{closure#0}::_::{closure#0}::assert_impl_all`
+  = note: this error originates in the macro `uniffi::deps::static_assertions::assert_impl_all` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: can't compare `TraitMethods` with `TraitMethods`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  | ...   uniffi::deps::static_assertions::assert_impl_all!(r#TraitMethods: PartialEq); // This object has a trait method which requires `Par...
+  |                                                         ^^^^^^^^^^^^^^ no implementation for `TraitMethods == TraitMethods`
+  |
+  = help: the trait `PartialEq` is not implemented for `TraitMethods`
+note: required by a bound in `uniffi_traits_fn_method_traitmethods__trait_partial_eq::{closure#0}::_::{closure#0}::assert_impl_all`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  |                 uniffi::deps::static_assertions::assert_impl_all!(r#TraitMethods: PartialEq); // This object has a trait method which req...
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `uniffi_traits_fn_method_traitmethods__trait_partial_eq::{closure#0}::_::{closure#0}::assert_impl_all`
+  = note: this error originates in the macro `uniffi::deps::static_assertions::assert_impl_all` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider annotating `TraitMethods` with `#[derive(PartialEq)]`
+   --> |$DIR/tests/ui/trait_macro_no_trait.rs
+    |
+    | #[derive(PartialEq)]
+    |
+
+error[E0277]: the trait bound `TraitMethods: Hash` is not satisfied
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  | ...   uniffi::deps::static_assertions::assert_impl_all!(r#TraitMethods: Hash); // This object has a trait method which requires `Hash` be...
+  |                                                         ^^^^^^^^^^^^^^ the trait `Hash` is not implemented for `TraitMethods`
+  |
+note: required by a bound in `uniffi_traits_fn_method_traitmethods__trait_hash::{closure#0}::_::{closure#0}::assert_impl_all`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  |                 uniffi::deps::static_assertions::assert_impl_all!(r#TraitMethods: Hash); // This object has a trait method which requires...
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `uniffi_traits_fn_method_traitmethods__trait_hash::{closure#0}::_::{closure#0}::assert_impl_all`
+  = note: this error originates in the macro `uniffi::deps::static_assertions::assert_impl_all` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider annotating `TraitMethods` with `#[derive(Hash)]`
+   --> |$DIR/tests/ui/trait_macro_no_trait.rs
+    |
+    | #[derive(Hash)]
+    |
+
+error[E0277]: `TraitMethods` doesn't implement `std::fmt::Display`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  | /                 match<std::sync::Arc<r#TraitMethods> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
+  | |                     Ok(ref val) => val,
+  | |                     Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
+  | |                 }
+  | |_________________^ `TraitMethods` cannot be formatted with the default formatter
+  |
+  = help: the trait `std::fmt::Display` is not implemented for `TraitMethods`
+  = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+  = help: the trait `std::fmt::Display` is implemented for `Arc<T>`
+  = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: can't compare `TraitMethods` with `TraitMethods`
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  |                   PartialEq::eq(
+  |                   ------------- required by a bound introduced by this call
+...
+  | /         match<std::sync::Arc<r#TraitMethods> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#other) {
+  | |
+  | |             Ok(ref val) => val,
+  | |             Err(err) => panic!("Failed to convert arg '{}': {}", "other", err),
+  | |         })
+  | |_________^ no implementation for `TraitMethods == TraitMethods`
+  |
+  = help: the trait `PartialEq` is not implemented for `TraitMethods`
+  = note: required for `Arc<TraitMethods>` to implement `PartialEq`
+help: consider annotating `TraitMethods` with `#[derive(PartialEq)]`
+   --> |$DIR/tests/ui/trait_macro_no_trait.rs
+    |
+    | #[derive(PartialEq)]
+    |
+
+error[E0277]: the trait bound `TraitMethods: Hash` is not satisfied
+ --> $OUT_DIR[uniffi_uitests]/trait_methods.uniffi.rs
+  |
+  |                   Hash::hash(match<std::sync::Arc<r#TraitMethods> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
+  |  _________________----------_^
+  | |                 |
+  | |                 required by a bound introduced by this call
+  | |                     Ok(ref val) => val,
+  | |                     Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
+  | |                 }, &mut s);
+  | |_________________^ the trait `Hash` is not implemented for `TraitMethods`
+  |
+  = help: the trait `Hash` is implemented for `Arc<T>`
+  = note: required for `Arc<TraitMethods>` to implement `Hash`
+help: consider annotating `TraitMethods` with `#[derive(Hash)]`
+   --> |$DIR/tests/ui/trait_macro_no_trait.rs
+    |
+    | #[derive(Hash)]
+    |
