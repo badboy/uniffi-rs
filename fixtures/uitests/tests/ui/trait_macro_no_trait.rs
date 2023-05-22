@@ -3,9 +3,8 @@ uniffi_macros::generate_and_include_scaffolding!("../../../../fixtures/trait-met
 
 fn main() { /* empty main required by `trybuild` */}
 
-// We derive `Debug` so our generated `assert_impl_all` output is prettier, but
-// we don't derive any other traits used in that UDL.
-#[derive(Debug)]
+// We derive most required traits, just not `Display`, to keep the output smaller.
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct TraitMethods {}
 
 impl TraitMethods {
