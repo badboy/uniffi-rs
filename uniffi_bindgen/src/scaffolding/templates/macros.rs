@@ -6,35 +6,6 @@
 r#{{ func.name() }}({% call _arg_list_rs_call(func) -%})
 {%- endmacro -%}
 
-{%- macro to_rs_method_call(obj_name, meth) -%}
-{#  Some magic methods need a uniffi-compatible shim #}
-{% if meth.magic() == "hash" %}
-    {
-        // the magic method "hash" - described as `fn(&self) -> i64`
-        use ::std::hash::{Hash, Hasher};
-        let mut s = ::std::collections::hash_map::DefaultHasher::new();
-        match<std::sync::Arc<{{ obj_name }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
-            Ok(ref val) => val,
-            Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
-        }.hash(&mut s);
-        s.finish()
-    }
-{% else if meth.magic() == "fmt" %}
-    {
-        // the magic method "fmt" - described as `fn(&self) -> String`
-        format!(
-            "{:?}",
-            match<std::sync::Arc<{{ obj_name }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
-                Ok(ref val) => val,
-                Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
-            }
-        )
-    }
-{% else %}
-    <{{ obj_name }}>::r#{{ meth.name() }}({% call _arg_list_rs_call(meth) -%})
-{% endif %}
-{%- endmacro -%}
-
 {%- macro _arg_list_rs_call(func) %}
     {%- for arg in func.full_arguments() %}
         match {{- arg.type_().borrow()|ffi_converter }}::try_lift(r#{{ arg.name() }}) {

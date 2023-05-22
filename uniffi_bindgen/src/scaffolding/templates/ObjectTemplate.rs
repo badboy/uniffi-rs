@@ -76,7 +76,67 @@ pub extern "C" fn {{ ffi_free.name() }}(ptr: *const std::os::raw::c_void, call_s
         // this attempt to call it will fail with a (somewhat) helpful compiler error.
         uniffi::rust_call(call_status, || {
             {{ meth|return_ffi_converter }}::lower_return(
-                {% call rs::to_rs_method_call(obj.rust_name(), meth) %}{% if meth.throws() %}.map_err(Into::into){% endif %}
+                <{{ obj.rust_name() }}>::{% call rs::to_rs_call(meth) %}{% if meth.throws() %}.map_err(Into::into){% endif %}
+            )
+        })
+    }
+{% endfor %}
+
+{%- for tm in obj.trait_methods() %}
+{%  let meth = tm.method() %}
+    #[doc(hidden)]
+    #[no_mangle]
+    #[allow(clippy::let_unit_value,clippy::unit_arg)] // The generated code uses the unit type like other types to keep things uniform
+    pub extern "C" fn r#{{ meth.ffi_func().name() }}(
+        {%- call rs::arg_list_ffi_decl(meth.ffi_func()) %}
+    ) {% call rs::return_signature(meth) %} {
+        uniffi::deps::log::debug!("{{ meth.ffi_func().name() }}");
+        uniffi::rust_call(call_status, || {
+            {{ meth|return_ffi_converter }}::lower_return(
+
+{#      All magic methods get an explicit shim #}
+{%      match tm.trait_name() %}
+{%          when "Debug" %}
+        {
+            format!(
+                "{:?}",
+                match<std::sync::Arc<{{ obj.rust_name() }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
+                    Ok(ref val) => val,
+                    Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
+                }
+            )
+        }
+{%          when "Display" %}
+        {
+            format!(
+                "{}",
+                match<std::sync::Arc<{{ obj.rust_name() }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
+                    Ok(ref val) => val,
+                    Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
+                }
+            )
+        }
+{%          when "Hash" %}
+            {
+                use ::std::hash::{Hash, Hasher};
+                let mut s = ::std::collections::hash_map::DefaultHasher::new();
+                Hash::hash(match<std::sync::Arc<{{ obj.rust_name() }}> as ::uniffi::FfiConverter<crate::UniFfiTag>>::try_lift(r#ptr) {
+                    Ok(ref val) => val,
+                    Err(err) => panic!("Failed to convert arg '{}': {}", "ptr", err),
+                }, &mut s);
+                s.finish()
+            }
+{%          when "PartialEq" %}
+            {
+                use ::std::cmp::PartialEq;
+                PartialEq::eq({% call rs::_arg_list_rs_call(meth) -%})
+            }
+{%          else %}
+        {
+            unreachable!("unrecognised magic method: {}", "{{ tm.trait_name() }}")
+        }
+{%      endmatch %}
+{%      if meth.throws() %}.map_err(Into::into){% endif %}
             )
         })
     }

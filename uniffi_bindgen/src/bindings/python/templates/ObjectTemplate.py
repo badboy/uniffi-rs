@@ -35,48 +35,22 @@ class {{ type_name }}(object):
 {% endfor %}
 
 {%- for meth in obj.methods() -%}
-{%-      let method_name %}
-{%-      if meth.magic() == "fmt" %}
-{%-          let method_name = "__repr__".to_string() %}
-{%-      else if meth.magic() == "str" %}
-{%-          let method_name = "__str__".to_string() %}
-{%-      else if meth.magic() == "eq" %}
-{%-          let method_name = "__eq__".to_string() %}
-{%-      else if meth.magic() == "hash" %}
-{%-          let method_name = "__hash__".to_string() %}
-{%-       else %}
-{%           let method_name = meth.name()|fn_name %}
-{%-       endif %}
+    {%- call py::method_decl(meth.name()|fn_name, meth) %}
+{% endfor %}
 
-{%-      if meth.is_async() %}
-
-    async def {{ method_name }}(self, {% call py::arg_list_decl(meth) %}):
-        {%- call py::setup_args_extra_indent(meth) %}
-        return await rust_call_async(
-            _UniFFILib.{{ func.ffi_func().name() }},
-            {{ func.result_type().borrow()|async_callback_fn }},
-            self._pointer,
-            {% call py::arg_list_lowered(func) %}
-        )
-
-{%-      else -%}
-{%-         match meth.return_type() %}
-
-{%-             when Some with (return_type) %}
-
-    def {{ method_name }}(self, {% call py::arg_list_decl(meth) %}):
-        {%- call py::setup_args_extra_indent(meth) %}
-        return {{ return_type|lift_fn }}(
-            {% call py::to_ffi_call_with_prefix("self._pointer", meth) %}
-        )
-
-{%-             when None %}
-
-    def {{ method_name }}(self, {% call py::arg_list_decl(meth) %}):
-        {%- call py::setup_args_extra_indent(meth) %}
-        {% call py::to_ffi_call_with_prefix("self._pointer", meth) %}
-{%          endmatch %}
-{%      endif %}
+{%- for tm in obj.trait_methods() -%}
+{%-     match tm.trait_name() %}
+{%-         when "Debug" %}
+            {%- call py::method_decl("__repr__", tm.method()) %}
+{%-         when "Display" %}
+            {%- call py::method_decl("__str__", tm.method()) %}
+{%-         when "PartialEq" %}
+            {%- call py::method_decl("__eq__", tm.method()) %}
+{%-         when "Hash" %}
+            {%- call py::method_decl("__hash__", tm.method()) %}
+{%-         else %}
+    # skipping unknown magic method {{ tm.trait_name() }}
+{%      endmatch %}
 {% endfor %}
 
 

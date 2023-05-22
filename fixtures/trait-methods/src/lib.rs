@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #[derive(Debug, PartialEq, Hash)]
-struct Magic {
+struct TraitMethods {
     val: String,
 }
 
-impl Magic {
+impl TraitMethods {
     fn new(val: String) -> Self {
         Self { val }
     }
 }
 
-impl std::fmt::Display for Magic {
+impl std::fmt::Display for TraitMethods {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Magic({})", self.val)
+        write!(f, "TraitMethods({})", self.val)
     }
 }
 
-include!(concat!(env!("OUT_DIR"), "/magic_methods.uniffi.rs"));
+include!(concat!(env!("OUT_DIR"), "/trait_methods.uniffi.rs"));

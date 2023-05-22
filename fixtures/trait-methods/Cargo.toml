@@ -1,5 +1,5 @@
 [package]
-name = "uniffi-fixture-magic-methods"
+name = "uniffi-fixture-trait-methods"
 version = "0.22.0"
 edition = "2021"
 license = "MPL-2.0"
@@ -7,7 +7,7 @@ publish = false
 
 [lib]
 crate-type = ["lib", "cdylib"]
-name = "uniffi_magic"
+name = "uniffi_traits"
 
 [dependencies]
 uniffi = {path = "../../uniffi"}

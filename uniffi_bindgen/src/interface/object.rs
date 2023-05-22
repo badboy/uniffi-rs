@@ -90,6 +90,9 @@ pub struct Object {
     pub(super) imp: ObjectImpl,
     pub(super) constructors: Vec<Constructor>,
     pub(super) methods: Vec<Method>,
+    // The "trait" methods - they have a (presumably "well known") name, and
+    // a regular method (albeit with a generated name)
+    pub(super) trait_methods: Vec<TraitMethod>,
     // We don't include the FfiFunc in the hash calculation, because:
     //  - it is entirely determined by the other fields,
     //    so excluding it is safe.
@@ -107,6 +110,7 @@ impl Object {
             imp,
             constructors: Default::default(),
             methods: Default::default(),
+            trait_methods: Default::default(),
             ffi_func_free: Default::default(),
         }
     }
@@ -162,6 +166,10 @@ impl Object {
         }
     }
 
+    pub fn trait_methods(&self) -> Vec<&TraitMethod> {
+        self.trait_methods.iter().collect()
+    }
+
     pub fn ffi_object_free(&self) -> &FfiFunction {
         &self.ffi_func_free
     }
@@ -170,6 +178,7 @@ impl Object {
         iter::once(&self.ffi_func_free)
             .chain(self.constructors.iter().map(|f| &f.ffi_func))
             .chain(self.methods.iter().map(|f| &f.ffi_func))
+            .chain(self.trait_methods.iter().map(|f| &f.method.ffi_func))
     }
 
     pub fn derive_ffi_funcs(&mut self, ci_namespace: &str) -> Result<()> {
@@ -191,6 +200,9 @@ impl Object {
         for meth in self.methods.iter_mut() {
             meth.derive_ffi_func(ci_namespace, &self.name)?;
         }
+        for tm in self.trait_methods.iter_mut() {
+            tm.method.derive_ffi_func(ci_namespace, &self.name)?;
+        }
 
         Ok(())
     }
@@ -200,6 +212,7 @@ impl Object {
             self.methods
                 .iter()
                 .map(Method::iter_types)
+                .chain(self.trait_methods.iter().map(|m| m.method.iter_types()))
                 .chain(self.constructors.iter().map(Constructor::iter_types))
                 .flatten(),
         )
@@ -248,6 +261,54 @@ impl APIConverter<Object> for weedle::InterfaceDefinition<'_> {
                 }
                 _ => bail!("no support for interface member type {:?} yet", member),
             }
+        }
+        // synthesize the trait methods.
+        for trait_name in attributes.get_traits() {
+            let (name, arguments, return_type) = match trait_name.as_str() {
+                "Debug" => ("_trait_debug", vec![], Some(Type::String)),
+                "Display" => ("_trait_display", vec![], Some(Type::String)),
+                "PartialEq" => (
+                    "_trait_partial_eq",
+                    vec![Argument {
+                        name: "other".to_string(),
+                        type_: Type::Object {
+                            name: object.name().to_string(),
+                            imp: object_impl,
+                        },
+                        by_ref: true,
+                        optional: false,
+                        default: None,
+                    }],
+                    Some(Type::Boolean),
+                ),
+                "Hash" => ("_trait_hash", vec![], Some(Type::UInt64)),
+                _ => anyhow::bail!("Unknown trait name: \"{}\"", trait_name),
+            };
+            let mut method = Method {
+                // The name is used to create the ffi function for the method.
+                name: name.to_string(),
+                object_name: object.name.clone(),
+                checksum_fn_name: Default::default(), // gets filled in later.
+                is_async: false,
+                object_impl,
+                arguments,
+                return_type,
+                ffi_func: Default::default(),
+                attributes: Default::default(),
+                checksum_override: None,
+            };
+            // need to add known types as they aren't explicitly referenced in
+            // the UDL
+            if let Some(ref return_type) = method.return_type {
+                ci.types.add_known_type(return_type)?;
+            }
+            for arg in &method.arguments {
+                ci.types.add_known_type(&arg.type_)?
+            }
+            method.set_object_info(ci.namespace(), &object);
+            object
+                .trait_methods
+                .push(TraitMethod::new(trait_name, method));
         }
         Ok(object)
     }
@@ -408,10 +469,6 @@ impl APIConverter<Constructor> for weedle::interface::ConstructorInterfaceMember
 #[derive(Debug, Clone, Checksum)]
 pub struct Method {
     pub(super) name: String,
-    // Hacky POC - empty string == "not magic". All "magic" functions also get names,
-    // which is (a) the name on the Rust side of the ffi and (b) the name on the foreign
-    // side is those foreign bindings don't support the magic method.
-    pub(super) magic: String,
     pub(super) object_name: String,
     pub(super) is_async: bool,
     pub(super) object_impl: ObjectImpl,
@@ -440,10 +497,6 @@ impl Method {
 
     pub fn is_async(&self) -> bool {
         self.is_async
-    }
-
-    pub fn magic(&self) -> &str {
-        &self.magic
     }
 
     pub fn arguments(&self) -> Vec<&Argument> {
@@ -556,7 +609,6 @@ impl From<uniffi_meta::MethodMetadata> for Method {
 
         Self {
             name: meta.name,
-            magic: "".to_string(),
             object_name: meta.self_name,
             is_async,
             object_impl: ObjectImpl::Struct,
@@ -585,9 +637,6 @@ impl APIConverter<Method> for weedle::interface::OperationInterfaceMember<'_> {
             bail!("method modifiers are not supported")
         }
         let return_type = ci.resolve_return_type_expression(&self.return_type)?;
-        let attributes = MethodAttributes::try_from(self.attributes.as_ref())?;
-        let magic = attributes.get_magic();
-
         Ok(Method {
             name: match self.identifier {
                 None => bail!("anonymous methods are not supported {:?}", self),
@@ -599,7 +648,6 @@ impl APIConverter<Method> for weedle::interface::OperationInterfaceMember<'_> {
                     name
                 }
             },
-            magic,
             // We don't know the name of the containing `Object` at this point, fill it in later.
             object_name: Default::default(),
             // Also fill in checksum_fn_name later, since it depends on the object name
@@ -609,9 +657,29 @@ impl APIConverter<Method> for weedle::interface::OperationInterfaceMember<'_> {
             arguments: self.args.body.list.convert(ci)?,
             return_type,
             ffi_func: Default::default(),
-            attributes,
+            attributes: MethodAttributes::try_from(self.attributes.as_ref())?,
             checksum_override: None,
         })
+    }
+}
+
+#[derive(Debug, Clone, Checksum)]
+pub struct TraitMethod {
+    pub(super) trait_name: String,
+    pub(super) method: Method,
+}
+
+impl TraitMethod {
+    fn new(trait_name: String, method: Method) -> Self {
+        Self { trait_name, method }
+    }
+
+    pub(crate) fn trait_name(&self) -> &str {
+        &self.trait_name
+    }
+
+    pub(crate) fn method(&self) -> &Method {
+        &self.method
     }
 }
 

@@ -3,25 +3,25 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import unittest
-from magic import *
+from traits import *
 
-class TestMagic(unittest.TestCase):
+class TestTraitMethods(unittest.TestCase):
     def test_str(self):
-        m = Magic("yo")
-        self.assertEqual(str(m), "Magic(yo)")
+        m = TraitMethods("yo")
+        self.assertEqual(str(m), "TraitMethods(yo)")
 
     def test_repr(self):
-        m = Magic("yo")
-        self.assertEqual(repr(m), 'Magic { val: "yo" }')
+        m = TraitMethods("yo")
+        self.assertEqual(repr(m), 'TraitMethods { val: "yo" }')
 
     def test_eq(self):
-        m = Magic("yo")
-        self.assertEqual(m, Magic("yo"))
-        self.assertNotEqual(m, Magic("yoyo"))
+        m = TraitMethods("yo")
+        self.assertEqual(m, TraitMethods("yo"))
+        self.assertNotEqual(m, TraitMethods("yoyo"))
 
     def test_hash(self):
         d = {}
-        m = Magic("m")
+        m = TraitMethods("m")
         d[m] = "m"
         self.assertTrue(m in d)
 

@@ -3,5 +3,5 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 fn main() {
-    uniffi::generate_scaffolding("./src/magic_methods.udl").unwrap();
+    uniffi::generate_scaffolding("./src/trait_methods.udl").unwrap();
 }

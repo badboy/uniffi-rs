@@ -1,0 +1,6 @@
+namespace traits {};
+
+[Traits=(Display, Debug, PartialEq, Hash)]
+interface TraitMethods {
+    constructor(string name);
+};
