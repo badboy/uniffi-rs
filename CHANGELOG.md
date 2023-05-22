@@ -30,6 +30,9 @@
 - Traits can be exposed as a UniFFI `interface` by using a `[Trait]` attribute in the UDL.
   See [the documentation](https://mozilla.github.io/uniffi-rs/udl/interfaces.html#exposing-traits-as-interfaces).
 
+- Methods implemented by standard Rust traits, such as `Debug`, `Display`, `PartialEq` and `Hash` can now be exposed over the FFI and bindings may implement special methods for them.
+ See [the documentation](https://mozilla.github.io/uniffi-rs/udl/interfaces.html#exposing-methods-from-standard-rust-traits).
+
 ## v0.23.0 (backend crates: v0.23.0) - (_2023-01-27_)
 
 [All changes in v0.23.0](https://github.com/mozilla/uniffi-rs/compare/v0.22.0...v0.23.0).
