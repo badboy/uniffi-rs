@@ -88,6 +88,49 @@ public class {{ type_name }}: {{ obj.name() }}Protocol {
     {% endfor %}
 }
 
+{%- let tms = obj.trait_methods() %}
+{%- if !tms.is_empty() -%}
+{%- for tm in tms -%}
+{%-     match tm.trait_name() %}
+{%-         when "Debug" %}
+extension {{ type_name }}: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        return {% call swift::try(tm.method()) %} FfiConverterString.lift(
+            {% call swift::to_ffi_call_with_prefix("self.pointer", tm.method()) %}
+        )
+    }
+}
+{%-         when "Display" %}
+extension {{ type_name }}: CustomStringConvertible {
+    public var description: String {
+        return {% call swift::try(tm.method()) %} FfiConverterString.lift(
+            {% call swift::to_ffi_call_with_prefix("self.pointer", tm.method()) %}
+        )
+    }
+}
+{%-         when "PartialEq" %}
+extension {{ type_name }}: Equatable {
+    public static func == (lhs: {{ type_name }}, other: {{ type_name }}) -> Bool {
+        return {% call swift::try(tm.method()) %} FfiConverterBool.lift(
+            {% call swift::to_ffi_call_with_prefix("lhs.pointer", tm.method()) %}
+        )
+    }
+}
+{%-         when "Hash" %}
+extension {{ type_name }}: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        let h = {% call swift::try(tm.method()) %} FfiConverterUInt64.lift(
+            {% call swift::to_ffi_call_with_prefix("self.pointer", tm.method()) %}
+        )
+        hasher.combine(h)
+    }
+}
+{%-         else %}
+    // skipping unknown magic method {{ tm.trait_name() }}
+{%      endmatch %}
+{% endfor %}
+{%- endif %}
+
 public struct {{ ffi_converter_name }}: FfiConverter {
     typealias FfiType = UnsafeMutableRawPointer
     typealias SwiftType = {{ type_name }}
