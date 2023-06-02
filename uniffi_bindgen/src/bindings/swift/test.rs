@@ -3,6 +3,7 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{bindings::RunScriptOptions, library_mode::generate_bindings};
+use crate::bindings::TargetLanguage;
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
@@ -123,7 +124,7 @@ struct GeneratedSources {
 
 impl GeneratedSources {
     fn new(crate_name: &str, cdylib_path: &Utf8Path, out_dir: &Utf8Path) -> Result<Self> {
-        let sources = generate_bindings(cdylib_path, None, &["swift".into()], out_dir, false)?;
+        let sources = generate_bindings(cdylib_path, None, &[TargetLanguage::Swift], out_dir, false)?;
         let main_source = sources
             .iter()
             .find(|s| s.package.name == crate_name)

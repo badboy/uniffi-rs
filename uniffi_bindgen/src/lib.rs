@@ -95,6 +95,7 @@
 const BINDGEN_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 use anyhow::{anyhow, bail, Context, Result};
+use bindings::TargetLanguage;
 use camino::{Utf8Path, Utf8PathBuf};
 use fs_err::{self as fs, File};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -268,7 +269,7 @@ pub fn generate_component_scaffolding(
 pub fn generate_bindings(
     udl_file: &Utf8Path,
     config_file_override: Option<&Utf8Path>,
-    target_languages: Vec<&str>,
+    target_languages: Vec<TargetLanguage>,
     out_dir_override: Option<&Utf8Path>,
     library_file: Option<&Utf8Path>,
     try_format_code: bool,
