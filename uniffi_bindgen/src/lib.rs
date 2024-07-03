@@ -89,7 +89,8 @@
 //! to load and use the compiled rust code via its C-compatible FFI.
 //!
 
-#![warn(rust_2018_idioms, unused_qualifications)]
+#![allow(dead_code)]
+//#![warn(rust_2018_idioms, unused_qualifications)]
 #![allow(unknown_lints)]
 
 use anyhow::{anyhow, bail, Context, Result};
