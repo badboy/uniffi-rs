@@ -7,12 +7,6 @@ private fun findLibraryName(componentName: String): String {
     return "{{ config.cdylib_name() }}"
 }
 
-private inline fun <reified Lib : Library> loadIndirect(
-    componentName: String
-): Lib {
-    return Native.load<Lib>(findLibraryName(componentName), Lib::class.java)
-}
-
 // Define FFI callback types
 {%- for def in ci.ffi_definitions() %}
 {%- match def %}
